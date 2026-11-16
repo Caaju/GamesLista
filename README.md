@@ -264,6 +264,31 @@ Cada busca gera linhas `db` (`search_records` e `count_search_records`) e `api` 
 <!-- ===== #4 fim ===== -->
 
 <!-- ===== #5 inicio: exportação CSV web (A) ===== -->
+## #5 Exportação CSV Web
+
+Na aba **Busca**, clique em **Exportar CSV** para baixar todos os jogos ativos que correspondem aos filtros aplicados. A exportação não se limita à página atualmente exibida; sem filtros, inclui todos os jogos ativos.
+
+O arquivo `games.csv` usa as colunas `id,title,platform,genre,release_year,rating,notes,active`. Os campos são delimitados por aspas, aspas internas são duplicadas e as linhas usam CRLF. Campos `notes` sem valor são exportados vazios.
+
+### Endpoint
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/web/records/export` | Baixa todos os jogos ativos que correspondem aos filtros `q`, `platform`, `genre`, `year_min`, `year_max` e `rating_min` |
+
+Exige `Authorization: Bearer <token>` e responde **401** sem token válido. Filtros inválidos respondem **400**. A resposta é `text/csv; charset=utf-8`, com `Content-Disposition: attachment`.
+
+```bash
+# TOKEN obtido no login, como no exemplo da issue #3
+curl -G "http://localhost:8080/api/web/records/export" \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode "platform=PC" \
+  --output games.csv
+```
+
+### Logs e testes
+
+Uma exportação bem-sucedida gera linhas `db` e `api` com operação `export_records` e o mesmo `request_id`. Os testes de `tests/exportacao.db.test.ts` e `tests/exportacao.api.test.ts` verificam filtros, exportação sem paginação, escaping CSV, autenticação e logs. Execute `docker compose run --rm tests`.
 <!-- ===== #5 fim ===== -->
 
 <!-- ===== #6 inicio: dashboard web (A) ===== -->
