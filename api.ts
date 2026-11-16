@@ -20,6 +20,7 @@ import {
   webCountSearchRecords,
   webDeleteRecord,
   webDashboard,
+  webExportRecords,
   webListRecords,
   webSearchRecords,
 } from "./db.js";
@@ -237,6 +238,62 @@ export function createApp(db: Queryable, tokens: TokenStore = new TokenStore()):
   // ===== #4 fim =====
 
   // ===== #5 inicio: exportação CSV web (A) =====
+
+  const csvField = (value: string | number | null): string => `"${String(value ?? "").replaceAll('"', '""')}"`;
+
+  app.get("/api/web/records/export", auth, async (req: Request, res: Response) => {
+    const q = textFilter(req.query.q);
+    const platform = textFilter(req.query.platform);
+    const genre = textFilter(req.query.genre);
+    const yearMin = yearFilter(req.query.year_min);
+    const yearMax = yearFilter(req.query.year_max);
+    const ratingMin = ratingFilter(req.query.rating_min);
+    if (
+      q === null ||
+      platform === null ||
+      genre === null ||
+      yearMin === null ||
+      yearMax === null ||
+      ratingMin === null
+    ) {
+      apiLog(res, "web", "WARN", "export_records", "Parâmetros de exportação inválidos");
+      res.status(400).json({ error: "Parâmetros inválidos" });
+      return;
+    }
+
+    try {
+      const filters = { q, platform, genre, yearMin, yearMax, ratingMin };
+      const records = await webExportRecords(db, filters, "web", requestIdOf(res));
+      const columns = ["id", "title", "platform", "genre", "release_year", "rating", "notes", "active"] as const;
+      const lines = [
+        columns.map(csvField).join(","),
+        ...records.map((record) =>
+          [
+            record.id,
+            record.title,
+            record.platform,
+            record.genre,
+            record.release_year,
+            record.rating,
+            record.notes,
+            record.active,
+          ]
+            .map(csvField)
+            .join(","),
+        ),
+      ];
+      apiLog(res, "web", "INFO", "export_records", "Exportação CSV devolvida");
+      res
+        .status(200)
+        .setHeader("Content-Type", "text/csv; charset=utf-8")
+        .setHeader("Content-Disposition", 'attachment; filename="games.csv"')
+        .send(lines.join("\r\n"));
+    } catch {
+      apiLog(res, "web", "ERROR", "export_records", "Erro interno ao exportar jogos");
+      res.status(500).json({ error: "Erro interno" });
+    }
+  });
+
   // ===== #5 fim =====
 
   // ===== #6 inicio: dashboard web (A) =====

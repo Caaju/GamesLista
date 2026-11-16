@@ -893,6 +893,36 @@
     // ===== #4 fim =====
 
     // ===== #5 inicio: exportação CSV web (A) =====
+
+    const exportButton = document.createElement("button");
+    exportButton.id = "busca-export";
+    exportButton.type = "button";
+    exportButton.className = "secondary";
+    exportButton.textContent = "Exportar CSV";
+    document.querySelector("#busca-form .busca-actions").append(exportButton);
+
+    exportButton.addEventListener("click", async () => {
+      searchError.textContent = "";
+      exportButton.disabled = true;
+      try {
+        const query = new URLSearchParams(searchState.filters);
+        const response = await apiFetch(`/records/export?${query}`);
+        if (response.status === 401) return;
+        if (!response.ok) throw new Error("falha na exportação");
+
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "games.csv";
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      } catch {
+        searchError.textContent = "Não foi possível exportar os jogos.";
+      } finally {
+        exportButton.disabled = false;
+      }
+    });
+
     // ===== #5 fim =====
 
     // ===== #6 inicio: dashboard web (A) =====
